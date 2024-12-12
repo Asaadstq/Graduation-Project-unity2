@@ -51,5 +51,5 @@
         "temp/": true,
         "Temp/": true
     },
-    "dotnet.defaultSolution": "Graduation Project Unity2.sln"
+    "dotnet.defaultSolution": "Graduation-Project-unity2.sln"
 }
