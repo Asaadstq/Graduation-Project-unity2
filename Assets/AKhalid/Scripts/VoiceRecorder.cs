@@ -25,14 +25,15 @@ public class VoiceRecorder : MonoBehaviour
     public Image StartStopColor;
 
 
-
+    [Header("Audio")]
+    public int microphoneIndex;
     private AudioClip recordedClip;
     private string microphoneDevice;
     private bool isRecording;
 
 
     void Start(){
-        Debug.Log(Microphone.devices[2]);
+        Debug.Log(Microphone.devices[microphoneIndex]);
 
         startRecording.onClick.AddListener(()=>StartRecording());
         stopRecording.onClick.AddListener(()=>StopRecordingAndTranscribe());
@@ -50,7 +51,7 @@ public class VoiceRecorder : MonoBehaviour
             return;
         }
 
-        microphoneDevice = Microphone.devices[2]; 
+        microphoneDevice = Microphone.devices[microphoneIndex]; 
         isRecording = true;
 
         StartStopColor.color=Color.green;
@@ -182,6 +183,7 @@ public class VoiceRecorder : MonoBehaviour
         WWWForm form = new WWWForm();
         form.AddBinaryData("file", wavData, "recording.wav", "audio/wav");
         form.AddField("model", "whisper-1");
+        form.AddField("language", "ar");
 
         using (UnityWebRequest request = UnityWebRequest.Post(url, form))
         {
