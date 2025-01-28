@@ -3,7 +3,8 @@ using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
-
+namespace Karaoke
+{
     public class Karaoke : MonoBehaviour
     {
         [Header("Setup")]
@@ -118,3 +119,4 @@ using UnityEngine;
         }
     }
 
+}

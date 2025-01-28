@@ -2,7 +2,8 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
-
+namespace Karaoke
+{
 public class VisualizerScript : MonoBehaviour
 {
     [Header("Visualizer Settings")]
@@ -88,4 +89,5 @@ public class VisualizerScript : MonoBehaviour
             visualizerObjects[i].GetComponent<Image>().color = visualizerColor;
         }
     }
+}
 }

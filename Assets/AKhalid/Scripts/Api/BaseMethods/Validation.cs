@@ -56,6 +56,8 @@ public class Validation
 
                 Constants.Constants.AUTHKEY=authCookie;
                 Constants.Constants.USERID=userIdCookie;
+                Constants.PlayerPrefsManager.SaveString("authorization",authCookie);
+                Constants.PlayerPrefsManager.SaveString("userid",userIdCookie);
 
                 return GenericApiResponse<GenericMessageResponse>.Success(loginResponse, (int)response.StatusCode);
             }
@@ -100,7 +102,10 @@ public class Validation
 
                 Constants.Constants.AUTHKEY=authCookie;
                 Constants.Constants.USERID=userIdCookie;
+                Constants.PlayerPrefsManager.SaveString("authorization",authCookie);
+                Constants.PlayerPrefsManager.SaveString("userid",userIdCookie);
 
+                
                 return GenericApiResponse<GenericMessageResponse>.Success(loginResponse, (int)response.StatusCode);
             }
             else

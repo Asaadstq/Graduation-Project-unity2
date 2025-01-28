@@ -6,7 +6,8 @@ using System;
 using UnityEngine.UI;
 using TMPro;
 using Newtonsoft.Json;
-
+namespace Karaoke
+{
 public class VoiceRecorder : MonoBehaviour
 {
     [Header("OpenAI API Settings")]
@@ -222,4 +223,5 @@ public class VoiceRecorder : MonoBehaviour
         public string text;  // The transcribed text
     }
 
+}
 }
