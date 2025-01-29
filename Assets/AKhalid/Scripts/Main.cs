@@ -1,9 +1,14 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Net;
 using System.Threading.Tasks;
+using Api.Models;
+using DG.Tweening;
+using PrefabSpecificScripts;
 using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
     public class Main : MonoBehaviour
@@ -13,7 +18,7 @@ using UnityEngine.UI;
         public TMP_InputField Login_Email;
         public TMP_InputField Login_Password;
         public Button Login_LoginButton;
-        public GameObject Login_Loading
+        public GameObject Login_Loading;
         public TMP_Text Login_ApiResponse;
 
         [Header("Signup UI")]
@@ -23,7 +28,7 @@ using UnityEngine.UI;
         public TMP_InputField Signup_Password;
         public TMP_InputField Signup_Age;
         public Button Signup_SignupBUtton;
-        public GameObject Signup_Loading
+        public GameObject Signup_Loading;
         public TMP_Text Signup_ApiResponse;
 
         [Header("Profile UI")]
@@ -32,7 +37,7 @@ using UnityEngine.UI;
         public Button Profile_LogoutButton;
         public TMP_Text Profile_Email;
         public TMP_Text Profile_Age;
-        public GameObject Profile_Loading
+        public GameObject Profile_Loading;
         public TMP_Text Profile_ApiResponse;
         public GameObject Profile_DoctorNamePrefab;
         public GameObject Profile_DoctorNamePrefabParent;
@@ -46,7 +51,6 @@ using UnityEngine.UI;
 
 
         [Header("Patient Exercises")]
-        public CanvasGroup PatientExercises_UI;
         public Button PatientExercises_NextPage;
         public Button PatientExercises_PreviousPage;
         public Slider PatientExercises_Slider;
@@ -61,7 +65,6 @@ using UnityEngine.UI;
         public Sprite PatientExercises_PageCoverSprite;
 
         [Header("General Exercises")]
-        public CanvasGroup GeneralExercises_UI;
         public Button GeneralExercises_NextPage;
         public Button GeneralExercises_PreviousPage;
         public Slider GeneralExercises_Slider;
@@ -76,9 +79,9 @@ using UnityEngine.UI;
         public Sprite GeneralExercises_PageCoverSprite;
 
 
-        private List<PatientExercises> patientExercises=new List<PatientExercises>();
-        private List<Exercises> patientExercisesDetails=new List<Exercises>();
-        private List<Exercises> generalExercises=new List<Exercises>();
+        private List<PatientExercise> patientExercises=new List<PatientExercise>();
+        private List<Exercise> patientExercisesDetails=new List<Exercise>();
+        private List<Exercise> generalExercises=new List<Exercise>();
 
         async Task Start()
         {
@@ -86,7 +89,7 @@ using UnityEngine.UI;
 
         }
 
-        public async void Setup()
+        public async Task Setup()
         {
 
             //Setup Sliders
@@ -98,20 +101,19 @@ using UnityEngine.UI;
             ShowHideUI(Login_UI,true);
             ShowHideUI(Signup_UI,false);
             ShowHideUI(Profile_UI,false);
-            ShowHideUI(Exercises_UI,false);
 
             //Get auth token from player prefs  
-            Constants.Constants.AUTHKEY = Constants.PlayerPrefsManager.GetString("authorization")
-            Constants.Constants.USERID = Constants.PlayerPrefsManager.GetString("userid")
+            Constants.Constants.AUTHKEY = Constants.PlayerPrefsManager.GetString("authorization");
+            Constants.Constants.USERID = Constants.PlayerPrefsManager.GetString("userid");
 
             //Start the LoginUI loading
-            Login_Loading.setactive(true);
+            Login_Loading.SetActive(true);
 
             //Call the getpatientinfo endpoint to validate the auth token, if it fails then force the user to login
             var getPatientInfoResponse = await Api.BaseMethods.Unity.GetPatientInfo();
             if(!getPatientInfoResponse.IsSuccess)
             {
-                Login_Loading.setactive(false);
+                Login_Loading.SetActive(false);
                 return;
 
             }
@@ -130,12 +132,12 @@ using UnityEngine.UI;
         public async void Login()
         {
             //Start the LoginUI loading
-            Login_Loading.setactive(true);
+            Login_Loading.SetActive(true);
 
-            var loginResponse = await Api.BaseMethods.Validation.Login();
+            var loginResponse = await Api.BaseMethods.Validation.Login(Login_Email.text,Login_Password.text);
             if(!loginResponse.IsSuccess)
             {
-                Login_Loading.setactive(false);
+                Login_Loading.SetActive(false);
                 Login_ApiResponse.text=loginResponse.error;
                 return;
 
@@ -154,12 +156,12 @@ using UnityEngine.UI;
         public async void Signup()
         {
             //Start the LoginUI loading
-            Login_Loading.setactive(true);
+            Login_Loading.SetActive(true);
 
-            var signupResponse = await Api.BaseMethods.Validation.Signup();
+            var signupResponse = await Api.BaseMethods.Validation.Signup(Signup_Email.text,Signup_Password.text,Signup_Name.text,Signup_Age.text);
             if(!signupResponse.IsSuccess)
             {
-                Signup_Loading.setactive(false);
+                Signup_Loading.SetActive(false);
                 Signup_ApiResponse.text=signupResponse.error;
                 return;
 
@@ -182,7 +184,7 @@ using UnityEngine.UI;
             ShowHideUI(Profile_UI,true);
             
             //Start profile loading
-            Profile_Loading.setactive(true);
+            Profile_Loading.SetActive(true);
 
             //Get user profile
             var getPatientInfoResponse = await Api.BaseMethods.Unity.GetPatientInfo();
@@ -191,7 +193,7 @@ using UnityEngine.UI;
                     //Response code forbidden means invalid auth token so return to login
                     if (getPatientInfoResponse.HttpCode == (int)HttpStatusCode.Forbidden)
                     {
-                    Profile_Loading.setactive(false);
+                    Profile_Loading.SetActive(false);
                     LogoutAndGoBacktoLoginScreen();
                     return;
 
@@ -221,7 +223,7 @@ using UnityEngine.UI;
                     //Response code forbidden means invalid auth token so return to login
                     if (getPatientDoctorsResponse.HttpCode == (int)HttpStatusCode.Forbidden)
                     {
-                    Profile_Loading.setactive(false);
+                    Profile_Loading.SetActive(false);
                     LogoutAndGoBacktoLoginScreen();
                     return;
 
@@ -242,9 +244,9 @@ using UnityEngine.UI;
                         //Add information to doctor prefab
                        DoctorNamePrefab doctorPrefabScript = doctorPrefab.GetComponent<DoctorNamePrefab>();
                        
-                       doctorPrefabScript.email = userprofile.email;
-                       doctorPrefabScript.name = userprofile.name;
-                       doctorPrefabScript.age = userprofile.age;
+                       doctorPrefabScript.email.text = userprofile.email;
+                       doctorPrefabScript.name.text = userprofile.name;
+                       doctorPrefabScript.age.text = userprofile.age;
 
                     }
 
@@ -253,13 +255,13 @@ using UnityEngine.UI;
             }
 
             //Stop loading profile
-            Profile_Loading.setactive(false);
+            Profile_Loading.SetActive(false);
         }
 
         public async void SetupPatientExercises()
         {
 
-                PatientExercises_Loading.setactive(true);
+                PatientExercises_Loading.SetActive(true);
 
                 var getPatientExercises = await Api.BaseMethods.Unity.GetPatientExercises();
                 if(!getPatientExercises.IsSuccess)
@@ -267,7 +269,7 @@ using UnityEngine.UI;
                     //Response code forbidden means invalid auth token so return to login
                     if (getPatientExercises.HttpCode == (int)HttpStatusCode.Forbidden)
                     {
-                    Profile_Loading.setactive(false);
+                    Profile_Loading.SetActive(false);
                     LogoutAndGoBacktoLoginScreen();
                     return;
 
@@ -278,7 +280,7 @@ using UnityEngine.UI;
                     //If its any other error just display it and exit
                     PatientExercises_ApiResponse.text=getPatientExercises.error;
                     ShowHideUI(PatientExercises_ApiResponseCanvas,true);
-                    PatientExercises_Loading.setactive(false);
+                    PatientExercises_Loading.SetActive(false);
                     return;
                     
                     }
@@ -298,7 +300,7 @@ using UnityEngine.UI;
                         //Response code forbidden means invalid auth token so return to login
                         if (getExerciseInformation.HttpCode == (int)HttpStatusCode.Forbidden)
                         {
-                        Profile_Loading.setactive(false);
+                        Profile_Loading.SetActive(false);
                         LogoutAndGoBacktoLoginScreen();
                         return;
 
@@ -309,7 +311,7 @@ using UnityEngine.UI;
                         //If its any other error just display it and exit
                         PatientExercises_ApiResponse.text=getExerciseInformation.error;
                         ShowHideUI(PatientExercises_ApiResponseCanvas,true);
-                        PatientExercises_Loading.setactive(false);
+                        PatientExercises_Loading.SetActive(false);
                         return;
                         
                         }
@@ -340,28 +342,28 @@ using UnityEngine.UI;
                 }
 
                 //Setup Slider
-                PatientExercises_SliderMaxPageText.text=numberOfPagesToAdd.tostring();
-                PatientExercises_SliderCurrentPageText.text=currentPage.tostring();
+                PatientExercises_SliderMaxPageText.text=numberOfPagesToAdd.ToString();
+                PatientExercises_SliderCurrentPageText.text=PatientExercises_Book.currentPage.ToString();
                 
                 PatientExercises_Slider.maxValue=numberOfPagesToAdd+2;
                 PatientExercises_Slider.minValue=0;
 
 
-                PatientExercises_Loading.setactive(false);
+                PatientExercises_Loading.SetActive(false);
         }
 
         public async void SetupGeneralExercises()
         {
 
-                GeneralExercises_Loading.setactive(true);
+                GeneralExercises_Loading.SetActive(true);
 
                 var getGeneralExercises = await Api.BaseMethods.Unity.GetGeneralExercises();
-                if(!getPatientExercises.IsSuccess)
+                if(!getGeneralExercises.IsSuccess)
                 {
                     //Response code forbidden means invalid auth token so return to login
                     if (getGeneralExercises.HttpCode == (int)HttpStatusCode.Forbidden)
                     {
-                    GeneralExercises_Loading.setactive(false);
+                    GeneralExercises_Loading.SetActive(false);
                     LogoutAndGoBacktoLoginScreen();
                     return;
 
@@ -372,7 +374,7 @@ using UnityEngine.UI;
                     //If its any other error just display it and exit
                     GeneralExercises_ApiResponse.text=getGeneralExercises.error;
                     ShowHideUI(GeneralExercises_ApiResponseCanvas,true);
-                    GeneralExercises_Loading.setactive(false);
+                    GeneralExercises_Loading.SetActive(false);
                     return;
                     
                     }
@@ -400,22 +402,22 @@ using UnityEngine.UI;
                 }
 
                 //Setup Slider
-                GeneralExercises_SliderMaxPageText.text=numberOfPagesToAdd.tostring();
-                GeneralExercises_SliderCurrentPageText.text=currentPage.tostring();
+                GeneralExercises_SliderMaxPageText.text=numberOfPagesToAdd.ToString();
+                GeneralExercises_SliderCurrentPageText.text=GeneralExercises_Book.currentPage.ToString();
                 
                 GeneralExercises_Slider.maxValue=numberOfPagesToAdd+2;
                 GeneralExercises_Slider.minValue=0;
 
 
-                GeneralExercises_Loading.setactive(false);
+                GeneralExercises_Loading.SetActive(false);
         }
 
 
         void LogoutAndGoBacktoLoginScreen(){
 
             //Delete Player Prefs
-            Constants.PlayerPrefsManager.DeleteKey("authorization")
-            Constants.PlayerPrefsManager.DeleteKey("userid")
+            Constants.PlayerPrefsManager.DeleteKey("authorization");
+            Constants.PlayerPrefsManager.DeleteKey("userid");
 
             //Reload Scene
             SceneManager.LoadScene(SceneManager.GetActiveScene().name);
@@ -427,12 +429,11 @@ using UnityEngine.UI;
 
         private void ShowHideUI(CanvasGroup canvasGroup, bool isActive)
     {
-        foreach (CanvasGroup element in elements)
-        {
-            element.DOFade(isActive ? 1f : 0f, 0.5f); 
-            element.interactable = isActive;
-            element.blocksRaycasts = isActive;
-        }
+
+            canvasGroup.DOFade(isActive ? 1f : 0f, 0.5f); 
+            canvasGroup.interactable = isActive;
+            canvasGroup.blocksRaycasts = isActive;
+        
     }
 
 

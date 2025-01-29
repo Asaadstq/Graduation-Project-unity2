@@ -6,6 +6,7 @@ using UnityEngine;
 using System.Collections;
 using UnityEngine.UI;
 using UnityEngine.Events;
+using System.Collections.Generic;
 public enum FlipMode
 {
     RightToLeft,

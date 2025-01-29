@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -59,7 +60,7 @@ public class Unity
         }
     }
 
-    public static async Task<GenericApiResponse<UserProfile>> GetPatientDoctors()
+    public static async Task<GenericApiResponse<List<UserProfile>>> GetPatientDoctors()
     {
         var url = $"{Constants.Constants._baseUrl}/unity/getpatientdoctors";
 
@@ -76,26 +77,26 @@ public class Unity
             {
                 // Deserialize response
                 var jsonResponse = await response.Content.ReadAsStringAsync();
-                UserProfile patientDoctorsResponse = JsonConvert.DeserializeObject<UserProfile>(jsonResponse);
+                List<UserProfile> patientDoctorsResponse = JsonConvert.DeserializeObject<List<UserProfile>>(jsonResponse);
 
 
-                return GenericApiResponse<UserProfile>.Success(patientDoctorsResponse, (int)response.StatusCode);
+                return GenericApiResponse<List<UserProfile>>.Success(patientDoctorsResponse, (int)response.StatusCode);
             }
             else
             {
                 var jsonResponse = await response.Content.ReadAsStringAsync();
                 GenericErrorResponse genericErrorResponse = JsonConvert.DeserializeObject<GenericErrorResponse>(jsonResponse);
-                return GenericApiResponse<UserProfile>.Failure(genericErrorResponse.error, (int)response.StatusCode);
+                return GenericApiResponse<List<UserProfile>>.Failure(genericErrorResponse.error, (int)response.StatusCode);
             }
         }
         catch (Exception)
         {
-            return GenericApiResponse<UserProfile>.Failure("Error communicating with server", (int)HttpStatusCode.InternalServerError);
+            return GenericApiResponse<List<UserProfile>>.Failure("Error communicating with server", (int)HttpStatusCode.InternalServerError);
         }
     }
 
 
-    public static async Task<GenericApiResponse<PatientExercise>> GetPatientExercises()
+    public static async Task<GenericApiResponse<List<PatientExercise>>> GetPatientExercises()
     {
         var url = $"{Constants.Constants._baseUrl}/unity/getpatientexercises";
 
@@ -112,21 +113,21 @@ public class Unity
             {
                 // Deserialize response
                 var jsonResponse = await response.Content.ReadAsStringAsync();
-                PatientExercise patientExerciseResponse = JsonConvert.DeserializeObject<PatientExercise>(jsonResponse);
+                List<PatientExercise> patientExerciseResponse = JsonConvert.DeserializeObject<List<PatientExercise>>(jsonResponse);
 
 
-                return GenericApiResponse<PatientExercise>.Success(patientExerciseResponse, (int)response.StatusCode);
+                return GenericApiResponse<List<PatientExercise>>.Success(patientExerciseResponse, (int)response.StatusCode);
             }
             else
             {
                 var jsonResponse = await response.Content.ReadAsStringAsync();
                 GenericErrorResponse genericErrorResponse = JsonConvert.DeserializeObject<GenericErrorResponse>(jsonResponse);
-                return GenericApiResponse<PatientExercise>.Failure(genericErrorResponse.error, (int)response.StatusCode);
+                return GenericApiResponse<List<PatientExercise>>.Failure(genericErrorResponse.error, (int)response.StatusCode);
             }
         }
         catch (Exception)
         {
-            return GenericApiResponse<PatientExercise>.Failure("Error communicating with server", (int)HttpStatusCode.InternalServerError);
+            return GenericApiResponse<List<PatientExercise>>.Failure("Error communicating with server", (int)HttpStatusCode.InternalServerError);
         }
     }
 
@@ -166,7 +167,7 @@ public class Unity
         }
     }
 
-        public static async Task<GenericApiResponse<Exercise>> GetGeneralExercises()
+        public static async Task<GenericApiResponse<List<Exercise>>> GetGeneralExercises()
     {
         var url = $"{Constants.Constants._baseUrl}/unity/getgeneralexercises";
 
@@ -183,21 +184,21 @@ public class Unity
             {
                 // Deserialize response
                 var jsonResponse = await response.Content.ReadAsStringAsync();
-                Exercise getGeneralExerciseResponse = JsonConvert.DeserializeObject<Exercise>(jsonResponse);
+                List<Exercise> getGeneralExerciseResponse = JsonConvert.DeserializeObject<List<Exercise>>(jsonResponse);
 
 
-                return GenericApiResponse<Exercise>.Success(getGeneralExerciseResponse, (int)response.StatusCode);
+                return GenericApiResponse<List<Exercise>>.Success(getGeneralExerciseResponse, (int)response.StatusCode);
             }
             else
             {
                 var jsonResponse = await response.Content.ReadAsStringAsync();
                 GenericErrorResponse genericErrorResponse = JsonConvert.DeserializeObject<GenericErrorResponse>(jsonResponse);
-                return GenericApiResponse<Exercise>.Failure(genericErrorResponse.error, (int)response.StatusCode);
+                return GenericApiResponse<List<Exercise>>.Failure(genericErrorResponse.error, (int)response.StatusCode);
             }
         }
         catch (Exception)
         {
-            return GenericApiResponse<Exercise>.Failure("Error communicating with server", (int)HttpStatusCode.InternalServerError);
+            return GenericApiResponse<List<Exercise>>.Failure("Error communicating with server", (int)HttpStatusCode.InternalServerError);
         }
     }
 
