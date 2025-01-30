@@ -14,6 +14,7 @@ public enum FlipMode
 }
 [ExecuteInEditMode]
 public class Book : MonoBehaviour {
+    public Slider _slider;
     public Canvas canvas;
     [SerializeField]
     RectTransform BookPanel;
@@ -72,6 +73,9 @@ public class Book : MonoBehaviour {
     {
         if (!canvas) canvas=GetComponentInParent<Canvas>();
         if (!canvas) Debug.LogError("Book should be a child to canvas");
+
+        //Get slider
+        _slider=GetComponentInChildren<Slider>();
 
         Left.gameObject.SetActive(false);
         Right.gameObject.SetActive(false);
@@ -380,9 +384,9 @@ public class Book : MonoBehaviour {
     void Flip()
     {
         if (mode == FlipMode.RightToLeft)
-            currentPage += 2;
+            _slider.value += 2;
         else
-            currentPage -= 2;
+            _slider.value -= 2;
         LeftNext.transform.SetParent(BookPanel.transform, true);
         Left.transform.SetParent(BookPanel.transform, true);
         LeftNext.transform.SetParent(BookPanel.transform, true);
