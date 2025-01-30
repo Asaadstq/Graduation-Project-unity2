@@ -13,11 +13,18 @@ using UnityEngine.UI;
 
     public class Main : MonoBehaviour
     {
+
+        [Header("General Exercises")]
+        public AudioClip pageFlipAudio;
+        public AudioSource audiosource;
+        
+
         [Header("Login UI")]
         public CanvasGroup Login_UI;
         public TMP_InputField Login_Email;
         public TMP_InputField Login_Password;
         public Button Login_LoginButton;
+        public Button Login_GoToSignupPage;
         public GameObject Login_Loading;
         public TMP_Text Login_ApiResponse;
 
@@ -28,15 +35,16 @@ using UnityEngine.UI;
         public TMP_InputField Signup_Password;
         public TMP_InputField Signup_Age;
         public Button Signup_SignupBUtton;
+        public Button Signup_GoToLoginPage;
         public GameObject Signup_Loading;
         public TMP_Text Signup_ApiResponse;
 
         [Header("Profile UI")]
         public CanvasGroup Profile_UI;
-        public TMP_Text Profile_Name;
+        public TMP_InputField Profile_Name;
         public Button Profile_LogoutButton;
-        public TMP_Text Profile_Email;
-        public TMP_Text Profile_Age;
+        public TMP_InputField Profile_Email;
+        public TMP_InputField Profile_Age;
         public GameObject Profile_Loading;
         public TMP_Text Profile_ApiResponse;
         public GameObject Profile_DoctorNamePrefab;
@@ -44,8 +52,10 @@ using UnityEngine.UI;
 
         [Header("Book")]
         public Book PatientExercises_Book;
+        public string PatientExercises_MaxPageCount;
         public AutoFlip PatientExercises_AutoFlipScript;
         public Book GeneralExercises_Book;
+        public string GeneralExercises_MaxPageCount;
         public AutoFlip GeneralExercises_AutoFlipScript;
         public Sprite Book_PageSprite;
 
@@ -55,13 +65,10 @@ using UnityEngine.UI;
         public Button PatientExercises_PreviousPage;
         public Slider PatientExercises_Slider;
         public TMP_Text PatientExercises_SliderCurrentPageText;
-        public TMP_Text PatientExercises_SliderMaxPageText;
         public GameObject PatientExercises_ExerciseLeftPageDetails;
         public GameObject PatientExercises_ExerciseRightPageDetails;
         public GameObject PatientExercises_Loading;
         public TMP_Text PatientExercises_ApiResponse;
-        public CanvasGroup PatientExercises_ApiResponseCanvas;
-        public Button PatientExercises_ApiResponseCanvasCloseButton;
         public Sprite PatientExercises_PageCoverSprite;
 
         [Header("General Exercises")]
@@ -69,13 +76,10 @@ using UnityEngine.UI;
         public Button GeneralExercises_PreviousPage;
         public Slider GeneralExercises_Slider;
         public TMP_Text GeneralExercises_SliderCurrentPageText;
-        public TMP_Text GeneralExercises_SliderMaxPageText;
         public GameObject GeneralExercises_ExerciseLeftPageDetails;
         public GameObject GeneralExercises_ExerciseRightPageDetails;
         public GameObject GeneralExercises_Loading;
         public TMP_Text GeneralExercises_ApiResponse;
-        public CanvasGroup GeneralExercises_ApiResponseCanvas;
-        public Button GeneralExercises_ApiResponseCanvasCloseButton;
         public Sprite GeneralExercises_PageCoverSprite;
 
 
@@ -93,10 +97,18 @@ using UnityEngine.UI;
         {
 
             //Setup Sliders
+            PatientExercises_Slider.onValueChanged.AddListener((value) => ChangePersonalExercisePage((int)value));
+            GeneralExercises_Slider.onValueChanged.AddListener((value) => ChangeGeneralExercisePage((int)value));
 
-            //Login UI
+            //Login Signup UI
             Login_LoginButton.onClick.AddListener(Login);
+            Signup_SignupBUtton.onClick.AddListener(Signup);
 
+            Login_GoToSignupPage.onClick.AddListener(() => GoToSignUpPage());
+            Signup_GoToLoginPage.onClick.AddListener(() => GoToLoginPage());
+
+            //Logout
+            Profile_LogoutButton.onClick.AddListener(LogoutAndGoBacktoLoginScreen);
             //Begin by hiding everything and displaying the login and canvas
             ShowHideUI(Login_UI,true);
             ShowHideUI(Signup_UI,false);
@@ -124,10 +136,123 @@ using UnityEngine.UI;
 
             //Setup profile and exercises
             SetupProfile();
-            SetupPatientExercises();
-            SetupGeneralExercises();
+            //SetupPatientExercises();
+            //SetupGeneralExercises();
 
         }
+
+
+    public void GoToSignUpPage()
+    {
+        ShowHideUI(Login_UI,false);
+        ShowHideUI(Signup_UI,true);
+        
+    }
+    public void GoToLoginPage()
+    {
+        ShowHideUI(Login_UI,true);
+        ShowHideUI(Signup_UI,false);
+        
+    }
+
+    public void PlayPageFlipAudio()
+    {
+
+        audiosource.PlayOneShot(pageFlipAudio,0.1f);
+
+    }
+
+    public void ChangePersonalExercisePage(int pagenumber)
+    { 
+
+
+        //If page is even
+        if (pagenumber%2==0)
+        {
+            
+            PatientExercises_Book.currentPage = 6 - pagenumber;
+            PatientExercises_Book.UpdateSprites();
+            //PatientExercises_SliderCurrentPageText.text=  (int.Parse(PatientExercises_MaxPageCount) - PatientExercises_Book.currentPage ).ToString() + "/" + PatientExercises_MaxPageCount;
+
+        }
+        //if page number is odd
+        else
+        {
+
+            PatientExercises_Book.currentPage = 6 - pagenumber + 1;
+            PatientExercises_Book.UpdateSprites();
+            //PatientExercises_SliderCurrentPageText.text=  (int.Parse(PatientExercises_MaxPageCount) - PatientExercises_Book.currentPage ).ToString() + "/" + PatientExercises_MaxPageCount;
+
+        }
+
+
+    }
+
+    public void GoToNextOrPreviousPagePersonalExercise(bool adding)
+    {
+        
+        if(adding)
+        PatientExercises_Slider.value+=2;
+        else
+        PatientExercises_Slider.value-=2;
+
+        if(PatientExercises_Slider.value==0 || PatientExercises_Slider.value==6 ){
+            PatientExercises_ExerciseLeftPageDetails.SetActive(false);
+            PatientExercises_ExerciseRightPageDetails.SetActive(false);
+        }
+        else{
+            PatientExercises_ExerciseLeftPageDetails.SetActive(true);
+            PatientExercises_ExerciseRightPageDetails.SetActive(true);
+        }
+
+
+        PlayPageFlipAudio();
+    }
+
+        public void ChangeGeneralExercisePage(int pagenumber)
+    { 
+
+
+        //If page is even
+        if (pagenumber%2==0)
+        {
+            
+            GeneralExercises_Book.currentPage = 6 - pagenumber;
+            GeneralExercises_Book.UpdateSprites();
+            //GeneralExercises_SliderCurrentPageText.text=  (int.Parse(GeneralExercises_MaxPageCount) - GeneralExercises_Book.currentPage ).ToString() + "/" + GeneralExercises_MaxPageCount;
+
+        }
+        //if page number is odd
+        else
+        {
+
+            GeneralExercises_Book.currentPage = 6 - pagenumber + 1;
+            GeneralExercises_Book.UpdateSprites();
+            //GeneralExercises_SliderCurrentPageText.text=  (int.Parse(GeneralExercises_MaxPageCount) - GeneralExercises_Book.currentPage ).ToString() + "/" +GeneralExercises_MaxPageCount;
+
+        }
+    }
+
+
+    public void GoToNextOrPreviousPageGeneralExercise(bool adding)
+    {
+        
+        if(adding)
+        GeneralExercises_Slider.value+=2;
+        else
+        GeneralExercises_Slider.value-=2;
+
+        PlayPageFlipAudio();
+
+        if(GeneralExercises_Slider.value==0 || GeneralExercises_Slider.value==6 ){
+           GeneralExercises_ExerciseLeftPageDetails.SetActive(false);
+            GeneralExercises_ExerciseRightPageDetails.SetActive(false);
+        }
+        else{
+            GeneralExercises_ExerciseLeftPageDetails.SetActive(true);
+            GeneralExercises_ExerciseRightPageDetails.SetActive(true);
+        }
+    }
 
         public async void Login()
         {
@@ -279,7 +404,6 @@ using UnityEngine.UI;
 
                     //If its any other error just display it and exit
                     PatientExercises_ApiResponse.text=getPatientExercises.error;
-                    ShowHideUI(PatientExercises_ApiResponseCanvas,true);
                     PatientExercises_Loading.SetActive(false);
                     return;
                     
@@ -310,7 +434,6 @@ using UnityEngine.UI;
 
                         //If its any other error just display it and exit
                         PatientExercises_ApiResponse.text=getExerciseInformation.error;
-                        ShowHideUI(PatientExercises_ApiResponseCanvas,true);
                         PatientExercises_Loading.SetActive(false);
                         return;
                         
@@ -341,9 +464,10 @@ using UnityEngine.UI;
                     
                 }
 
+                PatientExercises_MaxPageCount=numberOfPagesToAdd.ToString();
+
                 //Setup Slider
-                PatientExercises_SliderMaxPageText.text=numberOfPagesToAdd.ToString();
-                PatientExercises_SliderCurrentPageText.text=PatientExercises_Book.currentPage.ToString();
+                PatientExercises_SliderCurrentPageText.text=PatientExercises_Book.currentPage.ToString() + "/" + numberOfPagesToAdd.ToString();;
                 
                 PatientExercises_Slider.maxValue=numberOfPagesToAdd+2;
                 PatientExercises_Slider.minValue=0;
@@ -373,7 +497,6 @@ using UnityEngine.UI;
 
                     //If its any other error just display it and exit
                     GeneralExercises_ApiResponse.text=getGeneralExercises.error;
-                    ShowHideUI(GeneralExercises_ApiResponseCanvas,true);
                     GeneralExercises_Loading.SetActive(false);
                     return;
                     
@@ -402,9 +525,8 @@ using UnityEngine.UI;
                 }
 
                 //Setup Slider
-                GeneralExercises_SliderMaxPageText.text=numberOfPagesToAdd.ToString();
-                GeneralExercises_SliderCurrentPageText.text=GeneralExercises_Book.currentPage.ToString();
-                
+                GeneralExercises_MaxPageCount=numberOfPagesToAdd.ToString();
+                GeneralExercises_SliderCurrentPageText.text=GeneralExercises_Book.currentPage.ToString() + "/" + numberOfPagesToAdd.ToString();
                 GeneralExercises_Slider.maxValue=numberOfPagesToAdd+2;
                 GeneralExercises_Slider.minValue=0;
 
