@@ -1,23 +1,36 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using Api.Models;
 using DG.Tweening;
+using Karaoke;
 using PrefabSpecificScripts;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Rendering;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
     public class Main : MonoBehaviour
     {
 
-        [Header("General Exercises")]
+        [Header("General")]
+        public Camera mainCamera;
+        public GameObject TeacherAtDesk;
+        public GameObject TeacherAtBoard;
+        public Karaoke2 karaokeScript;
         public AudioClip pageFlipAudio;
         public AudioSource audiosource;
+        public ResetXROriginOnStart resetXrOriginScript;
         
+
+        [Header("Fade Camera")]
+        public Renderer  blackCameraFadeCube;
+        public float fadeDuration = 1.0f;
+        private Material material;
 
         [Header("Login UI")]
         public CanvasGroup Login_UI;
@@ -85,6 +98,7 @@ using UnityEngine.UI;
         public Sprite GeneralExercises_PageCoverSprite;
 
 
+
         private List<PatientExercise> patientExercises=new List<PatientExercise>();
         private List<Exercise> patientExercisesDetails=new List<Exercise>();
         private List<Exercise> generalExercises=new List<Exercise>();
@@ -92,12 +106,11 @@ using UnityEngine.UI;
         async Task Start()
         {
             await Setup();
-
         }
 
         public async Task Setup()
         {
-
+            material=blackCameraFadeCube.material;
             //Setup Sliders
             PatientExercises_Slider.onValueChanged.AddListener((value) => ChangePersonalExercisePage((int)value));
             GeneralExercises_Slider.onValueChanged.AddListener((value) => ChangeGeneralExercisePage((int)value));
@@ -200,7 +213,6 @@ using UnityEngine.UI;
         PatientExercises_ExerciseRightPageDetails.gameObject.SetActive(false);
 
         //Fill out exercises for each page and display it
-                //Fill out exercises for each page and display it
         if(PatientExercises_Book.currentPage -1 < patientExercises.Count && PatientExercises_Book.currentPage -1 < patientExercisesDetails.Count){
 
         PatientExercises_ExerciseRightPageDetails.exercisename.text=patientExercisesDetails[PatientExercises_Book.currentPage-1].exercisename;
@@ -211,6 +223,9 @@ using UnityEngine.UI;
         PatientExercises_ExerciseRightPageDetails.score.text=patientExercises[PatientExercises_Book.currentPage-1].score;
         PatientExercises_ExerciseRightPageDetails.stutteramount.text=patientExercises[PatientExercises_Book.currentPage-1].stutteramount.ToString();
         PatientExercises_ExerciseRightPageDetails.resetamount.text=patientExercises[PatientExercises_Book.currentPage-1].resetamount.ToString();
+        
+        PatientExercises_ExerciseRightPageDetails.startexercise.onClick.RemoveAllListeners();
+        PatientExercises_ExerciseRightPageDetails.startexercise.onClick.AddListener(()=> GoToExercise(patientExercisesDetails[PatientExercises_Book.currentPage-1].sentences.Split(",").ToList<String>(),patientExercisesDetails[PatientExercises_Book.currentPage-1].exerciseid,false));
 
         PatientExercises_ExerciseRightPageDetails.gameObject.SetActive(true);
         }
@@ -224,6 +239,9 @@ using UnityEngine.UI;
         PatientExercises_ExerciseLeftPageDetails.score.text=patientExercises[PatientExercises_Book.currentPage-2].score;
         PatientExercises_ExerciseLeftPageDetails.stutteramount.text=patientExercises[PatientExercises_Book.currentPage-2].stutteramount.ToString();
         PatientExercises_ExerciseLeftPageDetails.resetamount.text=patientExercises[PatientExercises_Book.currentPage-2].resetamount.ToString();
+
+        PatientExercises_ExerciseLeftPageDetails.startexercise.onClick.RemoveAllListeners();
+        PatientExercises_ExerciseLeftPageDetails.startexercise.onClick.AddListener(()=> GoToExercise(patientExercisesDetails[PatientExercises_Book.currentPage-2].sentences.Split(",").ToList<string>(),patientExercisesDetails[PatientExercises_Book.currentPage-2].exerciseid,false));
 
 
         PatientExercises_ExerciseLeftPageDetails.gameObject.SetActive(true);
@@ -282,10 +300,17 @@ using UnityEngine.UI;
         GeneralExercises_ExerciseRightPageDetails.exercisename.text=generalExercises[GeneralExercises_Book.currentPage-1].exercisename;
         GeneralExercises_ExerciseRightPageDetails.completed.text=generalExercises[GeneralExercises_Book.currentPage-1].sentences;
         GeneralExercises_ExerciseRightPageDetails.gameObject.SetActive(true);
+
+        GeneralExercises_ExerciseRightPageDetails.startexercise.onClick.RemoveAllListeners();
+        GeneralExercises_ExerciseRightPageDetails.startexercise.onClick.AddListener(()=> GoToExercise(generalExercises[GeneralExercises_Book.currentPage-1].sentences.Split(",").ToList<string>(),generalExercises[GeneralExercises_Book.currentPage-1].exerciseid,true));
+
         }
 
         GeneralExercises_ExerciseLeftPageDetails.exercisename.text=generalExercises[GeneralExercises_Book.currentPage-2].exercisename;
         GeneralExercises_ExerciseLeftPageDetails.completed.text=generalExercises[GeneralExercises_Book.currentPage-2].sentences;
+
+        GeneralExercises_ExerciseLeftPageDetails.startexercise.onClick.RemoveAllListeners();
+        GeneralExercises_ExerciseLeftPageDetails.startexercise.onClick.AddListener(()=> GoToExercise(generalExercises[GeneralExercises_Book.currentPage-2].sentences.Split(",").ToList<string>(),generalExercises[GeneralExercises_Book.currentPage-2].exerciseid,true));
 
         GeneralExercises_ExerciseLeftPageDetails.gameObject.SetActive(true);
 
@@ -597,6 +622,108 @@ using UnityEngine.UI;
 
         }
 
+    public async void GoToExercise(List<String> sentences, string exerciseId, bool isGeneralExercise){
+
+            await FadeInCameraAsync(1f);
+
+            //Move to exercise location
+            resetXrOriginScript.GoToExercisePoint();
+
+            //Hide Desk Teacher and Show Board Teacher
+            TeacherAtDesk.SetActive(false);
+            TeacherAtBoard.SetActive(true);
+            
+            karaokeScript.SetupExercise(sentences,exerciseId,isGeneralExercise);
+
+            await FadeOutCameraAsync(1f);
+
+            
+
+
+    }
+
+        public async void LeaveExercise(){
+
+            await FadeInCameraAsync(1f);
+            
+
+            //Move to desk location
+            resetXrOriginScript.Recenter();
+
+            //Show Desk Teacher and Hide Board Teacher
+            TeacherAtDesk.SetActive(true);
+            TeacherAtBoard.SetActive(false);
+
+            karaokeScript.parentCanvas.SetActive(false);
+            
+            await FadeOutCameraAsync(1f);
+    }
+    public async Task FadeInCameraAsync(float duration)
+    {
+        if (material == null)
+        {
+            Debug.LogError("Material not found!");
+            return;
+        }
+
+        await FadeMaterialAsync(0, 1, duration);
+        SetMaterialMode(false); // Set to Opaque after fade-in
+    }
+
+    public async Task FadeOutCameraAsync(float duration)
+    {
+        if (material == null)
+        {
+            Debug.LogError("Material not found!");
+            return;
+        }
+
+        await FadeMaterialAsync(1, 0, duration);
+        blackCameraFadeCube.gameObject.SetActive(false); // Deactivate after fade-out
+    }
+
+    private async Task FadeMaterialAsync(float startAlpha, float endAlpha, float duration)
+    {
+        SetMaterialMode(true); // Set to Transparent before fading
+        blackCameraFadeCube.gameObject.SetActive(true);
+
+        float elapsedTime = 0;
+        Color color = material.color;
+
+        while (elapsedTime < duration)
+        {
+            elapsedTime += Time.deltaTime;
+            color.a = Mathf.Lerp(startAlpha, endAlpha, elapsedTime / duration);
+            material.color = color;
+            await Task.Yield(); // Yield control back to Unity’s main loop
+        }
+
+        // Ensure final alpha value
+        color.a = endAlpha;
+        material.color = color;
+    }
+
+    private void SetMaterialMode(bool isTransparent)
+    {
+        if (isTransparent)
+        {
+            material.SetFloat("_Surface", 1);
+            material.SetOverrideTag("RenderType", "Transparent");
+            material.renderQueue = (int)RenderQueue.Transparent;
+            material.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+            material.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+            material.SetInt("_ZWrite", 0);
+        }
+        else
+        {
+            material.SetFloat("_Surface", 0);
+            material.SetOverrideTag("RenderType", "Opaque");
+            material.renderQueue = (int)RenderQueue.Geometry;
+            material.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.One);
+            material.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.Zero);
+            material.SetInt("_ZWrite", 1);
+        }
+    }
 
         void LogoutAndGoBacktoLoginScreen(){
 

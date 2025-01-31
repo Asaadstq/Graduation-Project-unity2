@@ -6,7 +6,8 @@ using UnityEngine.InputSystem.XR;
 
 public class ResetXROriginOnStart : MonoBehaviour
 {
-    public Transform target;
+    public Transform spawnPoint;
+    public Transform exercisePoint;
     public XROrigin origin;
     public Camera xrCamera; 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
@@ -34,8 +35,16 @@ public class ResetXROriginOnStart : MonoBehaviour
     
     public void Recenter()
     {
-            origin.MoveCameraToWorldLocation(target.position);
-            origin.MatchOriginUpCameraForward(target.up,target.forward);
+            origin.MoveCameraToWorldLocation(spawnPoint.position);
+            origin.MatchOriginUpCameraForward(spawnPoint.up,spawnPoint.forward);
+
+
+    }
+
+    public void GoToExercisePoint()
+    {
+            origin.MoveCameraToWorldLocation(exercisePoint.position);
+            origin.MatchOriginUpCameraForward(exercisePoint.up,exercisePoint.forward);
 
 
     }
