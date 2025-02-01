@@ -37,7 +37,7 @@ namespace Karaoke
         void Start()
         {
             audioSource.loop = loop;
-
+            Debug.Log(Microphone.devices[microphoneIndex]);
             if (useMicrophone)
             {
                 if (Microphone.devices.Length > 0)
@@ -49,7 +49,6 @@ namespace Karaoke
                     }
 
                     selectedMic = Microphone.devices[microphoneIndex];
-                    StartRecording();
                 }
                 else
                 {
@@ -99,7 +98,7 @@ namespace Karaoke
             }
 
             Debug.Log("Starting microphone recording...");
-            audioSource.clip = Microphone.Start(selectedMic, loop, 10, 44100);
+            audioSource.clip = Microphone.Start(selectedMic, loop, 10, 16000);
 
             while (Microphone.GetPosition(selectedMic) <= 0) { }
 

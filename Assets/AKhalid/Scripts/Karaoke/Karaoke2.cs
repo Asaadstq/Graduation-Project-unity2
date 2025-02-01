@@ -1,8 +1,15 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Net;
+using System.Threading;
+using System.Threading.Tasks;
+using Api.BaseMethods;
+using Api.Models;
 using TMPro;
+using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.SocialPlatforms.Impl;
 namespace Karaoke{
 public class Karaoke2 : MonoBehaviour
 {   
@@ -11,7 +18,12 @@ public class Karaoke2 : MonoBehaviour
     public MicrophoneScript microphoneScript;
     public GameObject parentCanvas;
     public GameObject startExitCanvas;
+    public GameObject loading;
+    public GameObject scoreBoardCanvas;
+    public TextMeshProUGUI scoreboardText;
     public GameObject karaokeCanvas;
+    public GameObject FinishGameEffect; 
+    public TextMeshProUGUI apiResponse; 
     public TextMeshProUGUI textDisplay; 
     public TextMeshProUGUI countdownDisplay;
     public TextMeshProUGUI exerciseNumber;
@@ -36,14 +48,23 @@ public class Karaoke2 : MonoBehaviour
     public AudioSource audioSource; 
     public AudioClip correctSoundEffect;
     public AudioClip wrongSoundEffect;
+    public AudioClip finishExerciseSoundEffect;
+    public AudioClip finishExerciseSoundEffect2;
+
     public AudioClip countdownBeep; 
     public float delayBeforeReset = 2f; 
 
     [Header("Exercise Data")]
     public List<string> sentences = new List<string>();
+    public List<string> unReversedsentences = new List<string>();
+
     public string exerciseId;
     public string exerciseType;
     public bool isGeneralExercise; 
+
+    private int score;
+    private int resetAmount;
+    private int stutterAmount;
 
     void Start()
     {
@@ -52,16 +73,27 @@ public class Karaoke2 : MonoBehaviour
 
     public void SetupExercise(List<string> newSentences, string newExerciseId,bool isGeneralExercise)
     {
+        FinishGameEffect.SetActive(false);
+        apiResponse.text="";
+        score=0;
+        resetAmount=0;
+        stutterAmount=0;
+
         startExitCanvas.SetActive(true);
         karaokeCanvas.SetActive(false);
         parentCanvas.SetActive(true);
+        scoreBoardCanvas.SetActive(false);
 
+        sentences.Clear();
+        unReversedsentences.Clear();
         //Stop the teachers animator
         Animator teacherAnim= mainscript.TeacherAtBoard.GetComponent<Animator>();
         teacherAnim.Play("TeacherExerciseLoop",0,0);
         teacherAnim.speed = 0; // Pause animation
 
         sentences = newSentences;
+        
+
         exerciseId = newExerciseId;
         this.isGeneralExercise=isGeneralExercise;
         
@@ -70,6 +102,7 @@ public class Karaoke2 : MonoBehaviour
         for (int i = 0; i < sentences.Count; i++)
 
         {
+            unReversedsentences.Add(sentences[i]);
             sentences[i]=ArabicSupport.Fix(sentences[i]);
             
         }
@@ -81,6 +114,7 @@ public class Karaoke2 : MonoBehaviour
 
         startExitCanvas.SetActive(false);
         karaokeCanvas.SetActive(true);
+        scoreBoardCanvas.SetActive(false);
 
         if (sentences.Count == 0) return;
         StopAllCoroutines(); // Ensure everything resets
@@ -133,17 +167,93 @@ public class Karaoke2 : MonoBehaviour
             textDisplay.text = GetColoredSentence(i);
             yield return new WaitForSeconds(wordTime);
         }
+
+
+        yield return new WaitForSeconds(0.5f);
+
         AudioClip audioClip = microphoneScript.StopRecording();
 
-        NextSentence(); // Proceed if completed
+
+
+        ValidateSentence(audioClip,unReversedsentences[currentSentenceIndex]); // Proceed if completed
     }
 
+public async Task ValidateSentence(AudioClip clip, string sentence)
+{
+    CorrectAnswer();
+    return;
+    Debug.Log("Validating Sentence...");
+    Debug.Log($"SENTENCE TO BE SENT TO API: {sentence}");
 
-    public void ValidateSentence(){
+    byte[] wavData = AudioConverter.AudioClipToWav(clip);
+    Task.Delay(500).Wait(); // Ensure audio conversion is complete
 
-        
+    int maxRetries = 3; // Maximum number of retries
+    int attempt = 0;
+
+    while (attempt < maxRetries)
+    {
+        attempt++;
+        Debug.Log($"API Call Attempt: {attempt}");
+
+        try
+        {
+            using (CancellationTokenSource cts = new CancellationTokenSource())
+            {
+                cts.CancelAfter(TimeSpan.FromSeconds(8)); // Set timeout of 15 seconds
+
+                Task<GenericApiResponse<SpeechAnalysisResult>> apiCallTask = SpeechAnalysis.ValidateSentence(wavData, sentence);
+                Task completedTask = await Task.WhenAny(apiCallTask, Task.Delay(8000, cts.Token)); // Wait for response or timeout
+
+                if (completedTask == apiCallTask) // API call completed successfully
+                {
+                    GenericApiResponse<SpeechAnalysisResult> response = await apiCallTask;
+
+                    if (response.Data.success)
+                    {
+                        Debug.Log($"Transcription: {ArabicSupport.Fix(response.Data.metrics.transcription.text)}");
+                        Debug.Log($"Fluency Score: {response.Data.metrics.fluency_score}");
+                    }
+                    else
+                    {
+                        Debug.LogError("Error: ERROROROROROROROR");
+                    }
+
+                    Debug.Log($"Text Comparison similarity ratio: {response.Data.metrics.text_comparison.similarity_ratio}");
+                    Debug.Log($"Text Comparison success: {response.Data.metrics.text_comparison.success}");
+
+                    if (response.Data.metrics.text_comparison.success)
+                    {
+                        CorrectAnswer();
+                        score+=response.Data.metrics.fluency_score;
+                        stutterAmount+=response.Data.metrics.repetitions.Count;
+                    }
+                    else
+                    {
+                        WrongAnswer();
+                    }
+
+                    return; // Exit loop on success
+                }
+                else
+                {
+                    Debug.LogWarning("API Call Timeout: Retrying...");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"API Call Failed: {ex.Message}");
+        }
+
+        await Task.Delay(500); // Wait 1 second before retrying
     }
-        
+
+    Debug.LogError("Max retries reached: API request failed.");
+    mainscript.LeaveExercise();
+    StopAllCoroutines();
+}
+
     
     string GetColoredSentence(int currentWordIndex)
     {
@@ -153,9 +263,9 @@ public class Karaoke2 : MonoBehaviour
         for (int i = 0; i < words.Length; i++)
         {
             if (i == highlightIndex)
-                formattedText += $"<color=#{ColorUtility.ToHtmlStringRGB(highlightColor)}>{words[i]}</color> ";
+                formattedText += $"<color=#{UnityEngine.ColorUtility.ToHtmlStringRGB(highlightColor)}>{words[i]}</color> ";
             else
-                formattedText += $"<color=#{ColorUtility.ToHtmlStringRGB(defaultColor)}>{words[i]}</color> ";
+                formattedText += $"<color=#{UnityEngine.ColorUtility.ToHtmlStringRGB(defaultColor)}>{words[i]}</color> ";
         }
 
         return formattedText.Trim();
@@ -213,15 +323,47 @@ public class Karaoke2 : MonoBehaviour
         }
         else
         {
-            mainscript.LeaveExercise();
+            ShowFinalMenuAsync();
+            StopAllCoroutines();
             Debug.Log("Exercise Complete!");
         }
     }
 
+
+    public async Task ShowFinalMenuAsync()
+    {
+        
+
+        parentCanvas.SetActive(true);
+        scoreBoardCanvas.SetActive(true);
+        karaokeCanvas.SetActive(false);
+        startExitCanvas.SetActive(false);
+
+        if(!isGeneralExercise)
+        {
+        
+        loading.SetActive(true);
+        var getGeneralExercises = await Api.BaseMethods.Unity.SaveExerciseInformation(exerciseId.ToString(), score.ToString(), stutterAmount.ToString(), "0",resetAmount.ToString());
+        if(!getGeneralExercises.IsSuccess)
+        {
+            apiResponse.text=getGeneralExercises.error;
+        }
+        mainscript.ResetPatientExercises();
+        }
+        loading.SetActive(false);
+        FinishGameEffect.SetActive(true);
+        audioSource.PlayOneShot(finishExerciseSoundEffect);
+        audioSource.PlayOneShot(finishExerciseSoundEffect2);
+
+        scoreboardText.text=score.ToString();
+
+
+    }
     void ResetSentence()
     {
         StopAllCoroutines(); // Stop any running sentence animation immediately
         StartCoroutine(StartCountdown()); 
+        resetAmount+=1;
     }
 }
 }

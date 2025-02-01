@@ -298,7 +298,7 @@ using UnityEngine.UI;
         //Fill out exercises for each page and display it
         if(GeneralExercises_Book.currentPage-1< generalExercises.Count){
         GeneralExercises_ExerciseRightPageDetails.exercisename.text=generalExercises[GeneralExercises_Book.currentPage-1].exercisename;
-        GeneralExercises_ExerciseRightPageDetails.completed.text=generalExercises[GeneralExercises_Book.currentPage-1].sentences;
+        GeneralExercises_ExerciseRightPageDetails.completed.text=ArabicSupport.Fix(generalExercises[GeneralExercises_Book.currentPage-1].sentences);
         GeneralExercises_ExerciseRightPageDetails.gameObject.SetActive(true);
 
         GeneralExercises_ExerciseRightPageDetails.startexercise.onClick.RemoveAllListeners();
@@ -307,7 +307,7 @@ using UnityEngine.UI;
         }
 
         GeneralExercises_ExerciseLeftPageDetails.exercisename.text=generalExercises[GeneralExercises_Book.currentPage-2].exercisename;
-        GeneralExercises_ExerciseLeftPageDetails.completed.text=generalExercises[GeneralExercises_Book.currentPage-2].sentences;
+        GeneralExercises_ExerciseLeftPageDetails.completed.text=ArabicSupport.Fix(generalExercises[GeneralExercises_Book.currentPage-2].sentences);
 
         GeneralExercises_ExerciseLeftPageDetails.startexercise.onClick.RemoveAllListeners();
         GeneralExercises_ExerciseLeftPageDetails.startexercise.onClick.AddListener(()=> GoToExercise(generalExercises[GeneralExercises_Book.currentPage-2].sentences.Split(",").ToList<string>(),generalExercises[GeneralExercises_Book.currentPage-2].exerciseid,true));
@@ -458,7 +458,23 @@ using UnityEngine.UI;
             //Stop loading profile
             Profile_Loading.SetActive(false);
         }
+        public async void ResetPatientExercises(){
+            // Clear the existing patient exercises list
+            patientExercises.Clear();
+            patientExercisesDetails.Clear();
 
+            // Reset the UI elements related to patient exercises
+            PatientExercises_Book.bookPages.Clear();
+            PatientExercises_Book.currentPage = 0;
+            PatientExercises_Book.UpdateSprites();
+            PatientExercises_Slider.value = 0;
+            PatientExercises_SliderCurrentPageText.text = "0/0";
+            PatientExercises_ApiResponse.text = string.Empty;
+            PatientExercises_CanvasGroup.interactable=false;
+
+            // Call the SetupPatientExercises method to repopulate the list
+            SetupPatientExercises();
+        }
         public async void SetupPatientExercises()
         {
 
@@ -554,6 +570,23 @@ using UnityEngine.UI;
                 PatientExercises_Loading.SetActive(false);
                 PatientExercises_CanvasGroup.interactable=true;
                 PatientExercises_Book.UpdateSprites();
+        }
+
+        public async void ResetGeneralExercises(){
+            // Clear the existing patient exercises list
+            generalExercises.Clear();
+
+            // Reset the UI elements related to patient exercises
+            GeneralExercises_Book.bookPages.Clear();
+            GeneralExercises_Book.currentPage = 0;
+            GeneralExercises_Book.UpdateSprites();
+            GeneralExercises_Slider.value = 0;
+            GeneralExercises_SliderCurrentPageText.text = "0/0";
+            GeneralExercises_ApiResponse.text = string.Empty;
+            GeneralExercises_CanvasGroup.interactable=false;
+
+            // Call the SetupPatientExercises method to repopulate the list
+            SetupGeneralExercises();
         }
 
         public async void SetupGeneralExercises()
