@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
+using Api.BaseMethods;
 using Api.Models;
 using DG.Tweening;
 using Karaoke;
@@ -25,7 +26,7 @@ using UnityEngine.UI;
         public AudioClip pageFlipAudio;
         public AudioSource audiosource;
         public ResetXROriginOnStart resetXrOriginScript;
-        
+        public GameObject resetPokeButton;
 
         [Header("Fade Camera")]
         public Renderer  blackCameraFadeCube;
@@ -105,11 +106,27 @@ using UnityEngine.UI;
 
         async Task Start()
         {
+            await GetServersFromGithub();
             await Setup();
+        }
+
+
+        public async Task GetServersFromGithub(){
+
+            var getServersResponse = await Api.BaseMethods.GetServersFromGithub.GetServersFromGithubAsync();
+            if(!getServersResponse.IsSuccess)
+            {
+                Debug.LogError(getServersResponse.error);
+                return;
+            }
+
+            Constants.Constants._baseUrl = getServersResponse.Data.sql_server;
+            Constants.Constants._whisperApi = getServersResponse.Data.python_server;
         }
 
         public async Task Setup()
         {
+            resetPokeButton.SetActive(false);
             material=blackCameraFadeCube.material;
             //Setup Sliders
             PatientExercises_Slider.onValueChanged.AddListener((value) => ChangePersonalExercisePage((int)value));
@@ -155,7 +172,7 @@ using UnityEngine.UI;
             SetupProfile();
             SetupPatientExercises();
             SetupGeneralExercises();
-
+            resetPokeButton.SetActive(true);
         }
 
 
@@ -265,7 +282,8 @@ using UnityEngine.UI;
         public void ChangeGeneralExercisePage(int pagenumber)
     { 
 
-
+        GeneralExercises_ExerciseLeftPageDetails.completed.text="";
+        GeneralExercises_ExerciseRightPageDetails.completed.text="";
         //If page is even
         if (pagenumber%2==0)
         {
@@ -298,7 +316,14 @@ using UnityEngine.UI;
         //Fill out exercises for each page and display it
         if(GeneralExercises_Book.currentPage-1< generalExercises.Count){
         GeneralExercises_ExerciseRightPageDetails.exercisename.text=generalExercises[GeneralExercises_Book.currentPage-1].exercisename;
-        GeneralExercises_ExerciseRightPageDetails.completed.text=ArabicSupport.Fix(generalExercises[GeneralExercises_Book.currentPage-1].sentences);
+        
+        var rightPageSentences = generalExercises[GeneralExercises_Book.currentPage-1].sentences.Split(",");
+        Array.Reverse(rightPageSentences);
+
+        foreach(var sentence in rightPageSentences){
+            GeneralExercises_ExerciseRightPageDetails.completed.text+=ArabicSupport.Fix(sentence) + "\n";
+        }
+
         GeneralExercises_ExerciseRightPageDetails.gameObject.SetActive(true);
 
         GeneralExercises_ExerciseRightPageDetails.startexercise.onClick.RemoveAllListeners();
@@ -307,7 +332,13 @@ using UnityEngine.UI;
         }
 
         GeneralExercises_ExerciseLeftPageDetails.exercisename.text=generalExercises[GeneralExercises_Book.currentPage-2].exercisename;
-        GeneralExercises_ExerciseLeftPageDetails.completed.text=ArabicSupport.Fix(generalExercises[GeneralExercises_Book.currentPage-2].sentences);
+
+        var sentences = generalExercises[GeneralExercises_Book.currentPage-2].sentences.Split(",");
+        Array.Reverse(sentences);
+
+        foreach(var sentence in sentences){
+            GeneralExercises_ExerciseLeftPageDetails.completed.text+=ArabicSupport.Fix(sentence) + "\n";
+        }
 
         GeneralExercises_ExerciseLeftPageDetails.startexercise.onClick.RemoveAllListeners();
         GeneralExercises_ExerciseLeftPageDetails.startexercise.onClick.AddListener(()=> GoToExercise(generalExercises[GeneralExercises_Book.currentPage-2].sentences.Split(",").ToList<string>(),generalExercises[GeneralExercises_Book.currentPage-2].exerciseid,true));
@@ -353,6 +384,7 @@ using UnityEngine.UI;
             SetupProfile();
             SetupPatientExercises();
             SetupGeneralExercises();
+            resetPokeButton.SetActive(true);
         }
         public async void Signup()
         {
@@ -377,6 +409,33 @@ using UnityEngine.UI;
             SetupProfile();
             SetupPatientExercises();
             SetupGeneralExercises();
+            resetPokeButton.SetActive(true);
+        }
+
+    public void OnResetButtonPressed(){
+
+        ResetProfile();
+        ResetPatientExercises();
+        ResetGeneralExercises();
+    }
+        public void ClearChildrenFromTransform(Transform transform)
+        {
+            for (int i = transform.childCount - 1; i >= 0; i--)
+            {
+                GameObject.Destroy(transform.GetChild(i).gameObject);
+            }
+        }
+
+        public async void ResetProfile()
+        {
+            // Clear existing profile data
+            Profile_ApiResponse.text = string.Empty;
+            Profile_Name.text = string.Empty;
+            Profile_Email.text = string.Empty;
+            Profile_Age.text = string.Empty;
+            ClearChildrenFromTransform(Profile_DoctorNamePrefabParent.transform); 
+            // Call the SetupProfile method to repopulate the profile data
+             SetupProfile();
         }
 
         public async void SetupProfile(){

@@ -157,9 +157,13 @@ public class Karaoke2 : MonoBehaviour
         return 60f / wordsPerMinute; 
     }
 
+
+
     IEnumerator AnimateText()
     {
         microphoneScript.StartRecording();
+        microphoneScript.StartMonitoringSilence(WrongAnswer);
+
         textDisplay.text = ""; 
 
         for (int i = 0; i < words.Length; i++)
@@ -168,25 +172,24 @@ public class Karaoke2 : MonoBehaviour
             yield return new WaitForSeconds(wordTime);
         }
 
+        microphoneScript.StopMonitoringSilence();
 
         yield return new WaitForSeconds(0.5f);
 
         AudioClip audioClip = microphoneScript.StopRecording();
 
-
+        
 
         ValidateSentence(audioClip,unReversedsentences[currentSentenceIndex]); // Proceed if completed
     }
 
 public async Task ValidateSentence(AudioClip clip, string sentence)
 {
-    CorrectAnswer();
-    return;
+
     Debug.Log("Validating Sentence...");
     Debug.Log($"SENTENCE TO BE SENT TO API: {sentence}");
 
     byte[] wavData = AudioConverter.AudioClipToWav(clip);
-    Task.Delay(500).Wait(); // Ensure audio conversion is complete
 
     int maxRetries = 3; // Maximum number of retries
     int attempt = 0;
@@ -200,7 +203,7 @@ public async Task ValidateSentence(AudioClip clip, string sentence)
         {
             using (CancellationTokenSource cts = new CancellationTokenSource())
             {
-                cts.CancelAfter(TimeSpan.FromSeconds(8)); // Set timeout of 15 seconds
+                cts.CancelAfter(TimeSpan.FromSeconds(8)); // Set timeout of 8 seconds
 
                 Task<GenericApiResponse<SpeechAnalysisResult>> apiCallTask = SpeechAnalysis.ValidateSentence(wavData, sentence);
                 Task completedTask = await Task.WhenAny(apiCallTask, Task.Delay(8000, cts.Token)); // Wait for response or timeout
@@ -213,6 +216,8 @@ public async Task ValidateSentence(AudioClip clip, string sentence)
                     {
                         Debug.Log($"Transcription: {ArabicSupport.Fix(response.Data.metrics.transcription.text)}");
                         Debug.Log($"Fluency Score: {response.Data.metrics.fluency_score}");
+                        Debug.Log($"repetitions: {response.Data.metrics.repetitions.Count}");
+
                     }
                     else
                     {
@@ -227,6 +232,7 @@ public async Task ValidateSentence(AudioClip clip, string sentence)
                         CorrectAnswer();
                         score+=response.Data.metrics.fluency_score;
                         stutterAmount+=response.Data.metrics.repetitions.Count;
+                        stutterAmount+=response.Data.metrics.prolongations.Count;
                     }
                     else
                     {
@@ -313,7 +319,7 @@ public async Task ValidateSentence(AudioClip clip, string sentence)
     {
         currentSentenceIndex++;
 
-        if(currentSentenceIndex+1<sentences.Count)
+        if(currentSentenceIndex+1<=sentences.Count)
         exerciseNumber.text=(currentSentenceIndex+1) +"/" + sentences.Count.ToString();
 
         if (currentSentenceIndex < sentences.Count)
@@ -343,7 +349,7 @@ public async Task ValidateSentence(AudioClip clip, string sentence)
         {
         
         loading.SetActive(true);
-        var getGeneralExercises = await Api.BaseMethods.Unity.SaveExerciseInformation(exerciseId.ToString(), score.ToString(), stutterAmount.ToString(), "0",resetAmount.ToString());
+        var getGeneralExercises = await Api.BaseMethods.Unity.SaveExerciseInformation(exerciseId.ToString(), (score/sentences.Count).ToString(), stutterAmount.ToString(), "0",resetAmount.ToString());
         if(!getGeneralExercises.IsSuccess)
         {
             apiResponse.text=getGeneralExercises.error;
@@ -355,12 +361,13 @@ public async Task ValidateSentence(AudioClip clip, string sentence)
         audioSource.PlayOneShot(finishExerciseSoundEffect);
         audioSource.PlayOneShot(finishExerciseSoundEffect2);
 
-        scoreboardText.text=score.ToString();
+        scoreboardText.text=(score/sentences.Count).ToString();
 
 
     }
     void ResetSentence()
     {
+        microphoneScript.StopMonitoringSilence();
         StopAllCoroutines(); // Stop any running sentence animation immediately
         StartCoroutine(StartCountdown()); 
         resetAmount+=1;

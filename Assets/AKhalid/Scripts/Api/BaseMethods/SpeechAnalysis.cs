@@ -16,7 +16,6 @@ namespace Api.BaseMethods
         private static readonly HttpClientHandler _handler = new HttpClientHandler { CookieContainer = _cookieContainer };
         private static readonly HttpClient _httpClient = new HttpClient(_handler);
 
-        private static readonly string apiUrl = "https://vz82ssc6-8000.euw.devtunnels.ms/analyze_speech/";
 
         static SpeechAnalysis()
         {
@@ -39,7 +38,7 @@ namespace Api.BaseMethods
                     formData.Add(textContent, "target_text");
 
                     // Send POST request
-                    HttpResponseMessage response = await _httpClient.PostAsync(apiUrl, formData);
+                    HttpResponseMessage response = await _httpClient.PostAsync(Constants.Constants._whisperApi, formData);
                     string jsonResponse = await response.Content.ReadAsStringAsync();
 
                     if (response.IsSuccessStatusCode)
