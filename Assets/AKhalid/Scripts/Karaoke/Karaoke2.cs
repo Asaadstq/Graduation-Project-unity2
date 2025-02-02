@@ -57,6 +57,7 @@ public class Karaoke2 : MonoBehaviour
     [Header("Exercise Data")]
     public List<string> sentences = new List<string>();
     public List<string> unReversedsentences = new List<string>();
+    public int exerciseCount=0;
 
     public string exerciseId;
     public string exerciseType;
@@ -78,6 +79,9 @@ public class Karaoke2 : MonoBehaviour
         score=0;
         resetAmount=0;
         stutterAmount=0;
+
+        exerciseCount=newSentences.Count;
+
 
         startExitCanvas.SetActive(true);
         karaokeCanvas.SetActive(false);
@@ -115,6 +119,7 @@ public class Karaoke2 : MonoBehaviour
         startExitCanvas.SetActive(false);
         karaokeCanvas.SetActive(true);
         scoreBoardCanvas.SetActive(false);
+        score=0;
 
         if (sentences.Count == 0) return;
         StopAllCoroutines(); // Ensure everything resets
@@ -203,11 +208,11 @@ public async Task ValidateSentence(AudioClip clip, string sentence)
         {
             using (CancellationTokenSource cts = new CancellationTokenSource())
             {
-                cts.CancelAfter(TimeSpan.FromSeconds(8)); // Set timeout of 8 seconds
-
+                cts.CancelAfter(TimeSpan.FromSeconds(20)); // Set timeout of 8 seconds
+                
                 Task<GenericApiResponse<SpeechAnalysisResult>> apiCallTask = SpeechAnalysis.ValidateSentence(wavData, sentence);
-                Task completedTask = await Task.WhenAny(apiCallTask, Task.Delay(8000, cts.Token)); // Wait for response or timeout
-
+                Task completedTask = await Task.WhenAny(apiCallTask, Task.Delay(20000, cts.Token)); // Wait for response or timeout
+                StopAllCoroutines();
                 if (completedTask == apiCallTask) // API call completed successfully
                 {
                     GenericApiResponse<SpeechAnalysisResult> response = await apiCallTask;
@@ -229,10 +234,17 @@ public async Task ValidateSentence(AudioClip clip, string sentence)
 
                     if (response.Data.metrics.text_comparison.success)
                     {
-                        CorrectAnswer();
+
+
                         score+=response.Data.metrics.fluency_score;
                         stutterAmount+=response.Data.metrics.repetitions.Count;
                         stutterAmount+=response.Data.metrics.prolongations.Count;
+                        CorrectAnswer();
+                        Debug.LogError($"SUCCESS SCORE BEFORE: OLD SCORE {score}  ADD {response.Data.metrics.fluency_score}");
+
+
+                        Debug.LogError($"SUCCESS NEW SCORE {score}");
+
                     }
                     else
                     {
@@ -345,11 +357,13 @@ public async Task ValidateSentence(AudioClip clip, string sentence)
         karaokeCanvas.SetActive(false);
         startExitCanvas.SetActive(false);
 
+        int scorenormalized=score/exerciseCount;
+
         if(!isGeneralExercise)
         {
         
         loading.SetActive(true);
-        var getGeneralExercises = await Api.BaseMethods.Unity.SaveExerciseInformation(exerciseId.ToString(), (score/sentences.Count).ToString(), stutterAmount.ToString(), "0",resetAmount.ToString());
+        var getGeneralExercises = await Api.BaseMethods.Unity.SaveExerciseInformation(exerciseId.ToString(), scorenormalized.ToString(), stutterAmount.ToString(), "0",resetAmount.ToString());
         if(!getGeneralExercises.IsSuccess)
         {
             apiResponse.text=getGeneralExercises.error;
@@ -361,7 +375,7 @@ public async Task ValidateSentence(AudioClip clip, string sentence)
         audioSource.PlayOneShot(finishExerciseSoundEffect);
         audioSource.PlayOneShot(finishExerciseSoundEffect2);
 
-        scoreboardText.text=(score/sentences.Count).ToString();
+        scoreboardText.text=scorenormalized.ToString();
 
 
     }
